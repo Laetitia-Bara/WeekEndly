@@ -1,4 +1,5 @@
-const BACKEND_URL = "http://localhost:3000";
+//const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = "https://weekendlybackend.vercel.app";
 
 const statusEl = document.querySelector("#status");
 const btn = document.querySelector("#refresh");
