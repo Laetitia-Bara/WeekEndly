@@ -241,7 +241,7 @@ async function refresh() {
 
     mainEl.innerHTML = `
   <span class="success">
-    Sortie conseillée : ${fmtSlot(bestStart, bestEnd)} (${duration}h) — ${best.temperature}°C
+    Sortie conseillée: ${fmtSlot(bestStart, bestEnd)} (${duration}h) — ${best.temperature}°C
   </span>
 `;
 
