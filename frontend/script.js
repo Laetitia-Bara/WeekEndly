@@ -264,3 +264,33 @@ async function refresh() {
 }
 
 btn.addEventListener("click", refresh);
+
+// Auto-refresh: toutes les 30 min quand l'app est visible
+const AUTO_REFRESH_MINUTES = 30;
+let autoRefreshTimer = null;
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(
+    () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    },
+    AUTO_REFRESH_MINUTES * 60 * 1000,
+  );
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = null;
+}
+
+// Quand on revient sur l'app, on refresh une fois
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    refresh();
+  }
+});
+
+startAutoRefresh();
