@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#6a3de8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WeekEndly</title>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="card">
+            <header class="header">
+                <div>
+                    <h1>WeekEndly</h1>
+                    <p class="muted">Meilleur créneau (09h→18h) pour sortir ce week-end</p>
+                </div>
+                <div class="row">
+                    <span id="status" class="badge">Prêt</span>
+                    <button id="refresh">Refresh</button>
+                </div>
+            </header>
+
+            <div class="controls row">
+                <label class="muted">Activité</label>
+                <select id="activity">
+                    <option value="dog">Balade chien</option>
+                    <option value="hike">Rando</option>
+                </select>
+
+                <label class="muted">Durée</label>
+                <select id="duration">
+                    <option value="1">1h</option>
+                    <option value="2" selected>2h</option>
+                    <option value="3">3h</option>
+                </select>
+
+                <span id="currentChoice" class="pill"></span>
+            </div>
+
+            <div id="main" class="result">Clique sur “Refresh” 🙂</div>
+            <div id="meta" class="muted"></div>
+
+            <section class="timeline">
+                <div class="muted"><b>Timeline (09h → 18h)</b></div>
+                <div id="timeline"></div>
+            </section>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Créneau</th>
+                        <th>Météo</th>
+                        <th>Temp</th>
+                        <th>Pluie</th>
+                        <th>Nuages</th>
+                        <th>Vent</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+
+            <div id="error" class="muted err"></div>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+
+    <!-- ✅ PWA: Service Worker -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./service-worker.js");
+        }
+    </script>
+</body>
+
+</html>

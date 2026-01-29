@@ -1,0 +1,24 @@
+{
+  "name": "weekendly-backend",
+  "version": "1.0.0",
+  "description": "Backend Express pour WeekEndly - meilleur créneau météo du week-end",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "keywords": [
+    "express",
+    "weather",
+    "weekend",
+    "api",
+    "lacapsule"
+  ],
+  "author": "WeekEndly",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.1"
+  }
+}
