@@ -1,4 +1,4 @@
-const CACHE_NAME = "weekendly-v1";
+const CACHE_NAME = "weekendly-v2";
 const ASSETS = [
   "./",
   "./index.html",
