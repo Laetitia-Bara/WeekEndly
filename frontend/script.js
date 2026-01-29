@@ -13,6 +13,9 @@ const activityEl = document.querySelector("#activity");
 const durationEl = document.querySelector("#duration");
 const currentChoiceEl = document.querySelector("#currentChoice");
 
+const top3El = document.querySelector("#top3");
+const top3ListEl = document.querySelector("#top3List");
+
 function setStatus(t) {
   statusEl.textContent = t;
 }
@@ -129,6 +132,100 @@ async function fetchForecast(lat, lon) {
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("Impossible de récupérer la météo (timeline)");
   return res.json();
+}
+
+function renderTop3(topSlots) {
+  // si pas de data -> on cache
+  if (!topSlots || topSlots.length === 0) {
+    top3El.hidden = true;
+    top3ListEl.innerHTML = "";
+    return;
+  }
+
+  top3El.hidden = false;
+
+  top3ListEl.innerHTML = topSlots
+    .map((s) => {
+      const slotLabel = fmtSlot(s.start, s.end);
+      return `
+        <div class="top3-item">
+          <div class="top3-left">
+            <div class="top3-slot">${slotLabel}</div>
+            <div class="top3-meta muted">${s.avgTemp}°C · risque pluie ${s.avgPop}%</div>
+          </div>
+          <div class="top3-score">${s.score}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function clamp01(x) {
+  return Math.max(0, Math.min(1, x));
+}
+
+function getWeights(activity) {
+  // version simple “cours” + cohérente avec ton backend (temp vs pluie)
+  return activity === "hike"
+    ? { temp: 2, rain: 6 } // rando un peu moins pénalisée par la pluie
+    : { temp: 2, rain: 10 }; // balade chien plus sensible à la pluie
+}
+
+function scoreSlot(avgTemp, sumRain, activity) {
+  const w = getWeights(activity);
+  return avgTemp * w.temp - sumRain * w.rain;
+}
+
+function computeTopSlotsFromForecast(forecast, now, activity, durationHours) {
+  const times = forecast.hourly.time.map((t) => new Date(t));
+
+  // week-end basé sur NOW (ok car forecast timezone auto)
+  const { sat, sun } = nextWeekendDates(now);
+
+  // 09h -> 18h (samedi 09:00 à dimanche 18:00)
+  const windowStart = new Date(sat);
+  windowStart.setHours(9, 0, 0, 0);
+
+  const windowEnd = new Date(sun);
+  windowEnd.setHours(18, 0, 0, 0);
+
+  const out = [];
+
+  for (let i = 0; i < times.length; i++) {
+    const start = times[i];
+    const end = new Date(start);
+    end.setHours(end.getHours() + durationHours);
+
+    if (start < windowStart || end > windowEnd || end <= now) continue;
+
+    const i2 = times.findIndex((t) => t.getTime() === end.getTime());
+    if (i2 === -1) continue;
+
+    // calc avg temp + sum rain sur la fenêtre
+    const sliceTemp = forecast.hourly.temperature_2m.slice(i, i2);
+    const avgTemp = sliceTemp.reduce((a, b) => a + b, 0) / sliceTemp.length;
+
+    // on n'a pas "precipitation" dans ce forecast-là, donc on approx avec proba (pop)
+    // -> simple: on convertit % en “risque” (pas parfait mais ok pour un top 3)
+    const slicePop = forecast.hourly.precipitation_probability.slice(i, i2);
+    const avgPop = slicePop.reduce((a, b) => a + b, 0) / slicePop.length;
+
+    // “sumRain” approximé : avgPop / 100 (entre 0 et 1) * durée
+    const sumRainApprox = (avgPop / 100) * durationHours;
+
+    const score = scoreSlot(avgTemp, sumRainApprox, activity);
+
+    out.push({
+      start,
+      end,
+      avgTemp: Math.round(avgTemp),
+      avgPop: Math.round(avgPop),
+      score: Math.round(score),
+    });
+  }
+
+  out.sort((a, b) => b.score - a.score);
+  return out.slice(0, 3);
 }
 
 function renderTimeline(forecast, now, bestStart, bestEnd) {
@@ -253,9 +350,20 @@ async function refresh() {
     const forecast = await fetchForecast(lat, lon);
     renderTimeline(forecast, now, bestStart, bestEnd);
 
+    // Top 3: seulement utile sur mobile, mais on peut le calculer partout
+    const topSlots = computeTopSlotsFromForecast(
+      forecast,
+      now,
+      activity,
+      duration,
+    );
+    renderTop3(topSlots);
+
     setStatus("OK");
   } catch (e) {
     setStatus("Erreur");
+    top3El.hidden = true;
+    top3ListEl.innerHTML = "";
     errEl.textContent = e.message || String(e);
     mainEl.textContent = "Impossible de proposer un créneau pour le moment.";
   } finally {
@@ -268,7 +376,6 @@ btn.addEventListener("click", refresh);
 // Auto-refresh: toutes les 30 min quand l'app est visible
 const AUTO_REFRESH_MINUTES = 30;
 let autoRefreshTimer = null;
-
 function startAutoRefresh() {
   stopAutoRefresh();
   autoRefreshTimer = setInterval(
