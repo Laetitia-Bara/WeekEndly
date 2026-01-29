@@ -245,7 +245,7 @@ async function refresh() {
   </span>
 `;
 
-    metaEl.textContent = `Position: ${lat.toFixed(3)}, ${lon.toFixed(3)} — ${now.toLocaleString("fr-FR")}`;
+    metaEl.textContent = `Maj: ${now.toLocaleTimeString("fr-FR")} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 
     renderTableBestOnly(best);
 

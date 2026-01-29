@@ -18,6 +18,7 @@
                     <h1>WeekEndly</h1>
                     <p class="muted">Meilleur créneau (09h→18h) pour sortir ce week-end</p>
                 </div>
+
                 <div class="row">
                     <span id="status" class="badge">Prêt</span>
                     <button id="refresh">Refresh</button>
@@ -25,13 +26,13 @@
             </header>
 
             <div class="controls row">
-                <label class="muted">Activité</label>
+                <label class="muted" for="activity">Activité</label>
                 <select id="activity">
                     <option value="dog">Balade chien</option>
                     <option value="hike">Rando</option>
                 </select>
 
-                <label class="muted">Durée</label>
+                <label class="muted" for="duration">Durée</label>
                 <select id="duration">
                     <option value="1">1h</option>
                     <option value="2" selected>2h</option>
@@ -41,38 +42,49 @@
                 <span id="currentChoice" class="pill"></span>
             </div>
 
-            <div class="muted">Auto-refresh : toutes les 30 min</div>
+            <!-- petite ligne d'info (discrète) -->
+            <div class="subinfo">
+                <span class="muted">Auto-refresh : toutes les 30 min</span>
+                <span id="meta" class="muted"></span>
+            </div>
 
             <div id="main" class="result">Clique sur “Refresh” 🙂</div>
-            <div id="meta" class="muted"></div>
 
             <section class="timeline">
                 <div class="muted"><b>Timeline (09h → 18h)</b></div>
                 <div id="timeline"></div>
             </section>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Créneau</th>
-                        <th>Météo</th>
-                        <th>Temp</th>
-                        <th>Pluie</th>
-                        <th>Nuages</th>
-                        <th>Vent</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody id="rows"></tbody>
-            </table>
+            <!-- Option ultra légère: table repliable -->
+            <details class="details">
+                <summary class="muted"><b>Détails</b> (table)</summary>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Créneau</th>
+                            <th>Météo</th>
+                            <th>Temp</th>
+                            <th>Pluie</th>
+                            <th>Nuages</th>
+                            <th>Vent</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"></tbody>
+                </table>
+            </details>
 
             <div id="error" class="muted err"></div>
+
+            <footer class="footer muted">
+                Powered by <b>Cosmos-lty</b>
+            </footer>
         </div>
     </div>
 
     <script src="./script.js"></script>
 
-    <!-- ✅ PWA: Service Worker -->
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./service-worker.js");
