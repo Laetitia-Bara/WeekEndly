@@ -1,5 +1,5 @@
 //const BACKEND_URL = "http://localhost:3000";
-const BACKEND_URL = "https://weekendlybackend.vercel.app";
+const BACKEND_URL = "https://api.weekendly.cosmos-lty.fr";
 
 const statusEl = document.querySelector("#status");
 const btn = document.querySelector("#refresh");
