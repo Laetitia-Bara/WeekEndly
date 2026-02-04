@@ -18,7 +18,6 @@
                     <h1>WeekEndly</h1>
                     <p class="muted">Meilleur créneau (09h→18h) pour sortir ce week-end</p>
                 </div>
-
                 <div class="row">
                     <span id="status" class="badge">Prêt</span>
                     <button id="refresh">Refresh</button>
@@ -26,80 +25,80 @@
             </header>
 
             <div class="controls row">
-                <label class="muted" for="activity">Activité</label>
+                <label class="muted">Activité</label>
                 <select id="activity">
                     <option value="dog">Balade chien</option>
                     <option value="hike">Rando</option>
                 </select>
 
-                <label class="muted" for="duration">Durée</label>
+                <label class="muted">Durée</label>
                 <select id="duration">
                     <option value="1">1h</option>
                     <option value="2" selected>2h</option>
                     <option value="3">3h</option>
                 </select>
 
+<label class="muted">Créneau</label>
+<select id="mode">
+    <option value="weekend" selected>Week-end (09h→18h)</option>
+    <option value="custom">Personnalisé</option>
+</select>
+
+<div id="customBox" class="row" style="display:none; width:100%; gap:12px;">
+    <div class="badge" style="display:flex; gap:10px; align-items:center;">
+        <label><input type="checkbox" id="satOn" checked /> Samedi</label>
+        <select id="satStart"></select>
+        <span class="muted">→</span>
+        <select id="satEnd"></select>
+    </div>
+
+    <div class="badge" style="display:flex; gap:10px; align-items:center;">
+        <label><input type="checkbox" id="sunOn" checked /> Dimanche</label>
+        <select id="sunStart"></select>
+        <span class="muted">→</span>
+        <select id="sunEnd"></select>
+    </div>
+</div>
+
+
                 <span id="currentChoice" class="pill"></span>
             </div>
 
-            <!-- petite ligne d'info (discrète) -->
-            <div class="subinfo">
-                <span class="muted">Auto-refresh : toutes les 30 min</span>
-                <span id="meta" class="muted"></span>
-            </div>
-
             <div id="main" class="result">Clique sur “Refresh” 🙂</div>
-
-<div id="top3" class="top3" hidden>
-    <div class="top3-title muted"><b>Top 3 créneaux</b></div>
-    <div id="top3List" class="top3-list"></div>
-</div>
-
+            <div id="meta" class="muted"></div>
 
             <section class="timeline">
                 <div class="muted"><b>Timeline (09h → 18h)</b></div>
                 <div id="timeline"></div>
             </section>
 
-            <!-- Option ultra légère: table repliable -->
-            <details class="details">
-                <summary class="muted"><b>Détails</b> (table)</summary>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Créneau</th>
-                            <th>Météo</th>
-                            <th>Temp</th>
-                            <th>Pluie</th>
-                            <th>Nuages</th>
-                            <th>Vent</th>
-                            <th>Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rows"></tbody>
-                </table>
-            </details>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Créneau</th>
+                        <th>Météo</th>
+                        <th>Temp</th>
+                        <th>Pluie</th>
+                        <th>Nuages</th>
+                        <th>Vent</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
 
             <div id="error" class="muted err"></div>
-
-            <footer class="footer muted">
-                Powered by <b>Cosmos-lty</b>
-            </footer>
         </div>
     </div>
 
     <script src="./script.js"></script>
 
-  <script>
-    if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" })
-            .then((reg) => reg.update())
-            .catch(console.error);
-    }
-</script>
-
-
+    <!-- ✅ PWA: Service Worker -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./service-worker.js");
+        }
+    </script>
 </body>
 
 </html>

@@ -3,14 +3,14 @@ const router = express.Router();
 const { getBestSlot } = require("../services/weather");
 
 router.post("/best-slot", async (req, res) => {
-  const { lat, lon, activity, duration } = req.body;
+  const { lat, lon, activity, duration, windows } = req.body;
 
-  if (!lat || !lon) {
+  if (lat == null || lon == null) {
     return res.json({ result: false, error: "Missing coordinates" });
   }
 
   try {
-    const bestSlot = await getBestSlot(lat, lon, activity, duration);
+    const bestSlot = await getBestSlot(lat, lon, activity, duration, windows);
     res.json({ result: true, bestSlot });
   } catch (e) {
     console.error(e);

@@ -1,5 +1,4 @@
-//const BACKEND_URL = "http://localhost:3000";
-const BACKEND_URL = "https://api.weekendly.cosmos-lty.fr";
+const BACKEND_URL = "http://localhost:3000";
 
 const statusEl = document.querySelector("#status");
 const btn = document.querySelector("#refresh");
@@ -13,8 +12,53 @@ const activityEl = document.querySelector("#activity");
 const durationEl = document.querySelector("#duration");
 const currentChoiceEl = document.querySelector("#currentChoice");
 
-const top3El = document.querySelector("#top3");
-const top3ListEl = document.querySelector("#top3List");
+const modeEl = document.querySelector("#mode");
+const customBoxEl = document.querySelector("#customBox");
+
+const satOnEl = document.querySelector("#satOn");
+const sunOnEl = document.querySelector("#sunOn");
+
+const satStartEl = document.querySelector("#satStart");
+const satEndEl = document.querySelector("#satEnd");
+const sunStartEl = document.querySelector("#sunStart");
+const sunEndEl = document.querySelector("#sunEnd");
+
+function fillHours(selectEl, from = 6, to = 22, selected = 9) {
+  selectEl.innerHTML = "";
+  for (let h = from; h <= to; h++) {
+    const opt = document.createElement("option");
+    opt.value = String(h);
+    opt.textContent = `${pad2(h)}h`;
+    if (h === selected) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+fillHours(satStartEl, 6, 22, 9);
+fillHours(satEndEl, 6, 22, 18);
+fillHours(sunStartEl, 6, 22, 9);
+fillHours(sunEndEl, 6, 22, 18);
+
+modeEl.addEventListener("change", () => {
+  customBoxEl.style.display = modeEl.value === "custom" ? "flex" : "none";
+  refresh();
+});
+
+function getWindowsPayload() {
+  if (modeEl.value !== "custom") return null;
+
+  return {
+    sat: {
+      enabled: satOnEl.checked,
+      startHour: Number(satStartEl.value),
+      endHour: Number(satEndEl.value),
+    },
+    sun: {
+      enabled: sunOnEl.checked,
+      startHour: Number(sunStartEl.value),
+      endHour: Number(sunEndEl.value),
+    },
+  };
+}
 
 function setStatus(t) {
   statusEl.textContent = t;
@@ -109,15 +153,20 @@ function getPosition() {
 }
 
 async function callBackendBestSlot(lat, lon, activity, duration) {
+  const windows = getWindowsPayload();
   const res = await fetch(`${BACKEND_URL}/best-slot`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ lat, lon, activity, duration }),
+    body: JSON.stringify({ lat, lon, activity, duration, windows }),
   });
   const data = await res.json();
   if (!data.result) throw new Error(data.error || "Erreur backend");
   return data.bestSlot; // { start, end, temperature, rain, score, ... }
 }
+
+[satOnEl, sunOnEl, satStartEl, satEndEl, sunStartEl, sunEndEl].forEach((el) =>
+  el.addEventListener("change", refresh),
+);
 
 async function fetchForecast(lat, lon) {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
@@ -134,107 +183,13 @@ async function fetchForecast(lat, lon) {
   return res.json();
 }
 
-function renderTop3(topSlots) {
-  // si pas de data -> on cache
-  if (!topSlots || topSlots.length === 0) {
-    top3El.hidden = true;
-    top3ListEl.innerHTML = "";
-    return;
-  }
-
-  top3El.hidden = false;
-
-  top3ListEl.innerHTML = topSlots
-    .map((s) => {
-      const slotLabel = fmtSlot(s.start, s.end);
-      return `
-        <div class="top3-item">
-          <div class="top3-left">
-            <div class="top3-slot">${slotLabel}</div>
-            <div class="top3-meta muted">${s.avgTemp}°C · risque pluie ${s.avgPop}%</div>
-          </div>
-          <div class="top3-score">${s.score}</div>
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function clamp01(x) {
-  return Math.max(0, Math.min(1, x));
-}
-
-function getWeights(activity) {
-  // version simple “cours” + cohérente avec ton backend (temp vs pluie)
-  return activity === "hike"
-    ? { temp: 2, rain: 6 } // rando un peu moins pénalisée par la pluie
-    : { temp: 2, rain: 10 }; // balade chien plus sensible à la pluie
-}
-
-function scoreSlot(avgTemp, sumRain, activity) {
-  const w = getWeights(activity);
-  return avgTemp * w.temp - sumRain * w.rain;
-}
-
-function computeTopSlotsFromForecast(forecast, now, activity, durationHours) {
-  const times = forecast.hourly.time.map((t) => new Date(t));
-
-  // week-end basé sur NOW (ok car forecast timezone auto)
-  const { sat, sun } = nextWeekendDates(now);
-
-  // 09h -> 18h (samedi 09:00 à dimanche 18:00)
-  const windowStart = new Date(sat);
-  windowStart.setHours(9, 0, 0, 0);
-
-  const windowEnd = new Date(sun);
-  windowEnd.setHours(18, 0, 0, 0);
-
-  const out = [];
-
-  for (let i = 0; i < times.length; i++) {
-    const start = times[i];
-    const end = new Date(start);
-    end.setHours(end.getHours() + durationHours);
-
-    if (start < windowStart || end > windowEnd || end <= now) continue;
-
-    const i2 = times.findIndex((t) => t.getTime() === end.getTime());
-    if (i2 === -1) continue;
-
-    // calc avg temp + sum rain sur la fenêtre
-    const sliceTemp = forecast.hourly.temperature_2m.slice(i, i2);
-    const avgTemp = sliceTemp.reduce((a, b) => a + b, 0) / sliceTemp.length;
-
-    // on n'a pas "precipitation" dans ce forecast-là, donc on approx avec proba (pop)
-    // -> simple: on convertit % en “risque” (pas parfait mais ok pour un top 3)
-    const slicePop = forecast.hourly.precipitation_probability.slice(i, i2);
-    const avgPop = slicePop.reduce((a, b) => a + b, 0) / slicePop.length;
-
-    // “sumRain” approximé : avgPop / 100 (entre 0 et 1) * durée
-    const sumRainApprox = (avgPop / 100) * durationHours;
-
-    const score = scoreSlot(avgTemp, sumRainApprox, activity);
-
-    out.push({
-      start,
-      end,
-      avgTemp: Math.round(avgTemp),
-      avgPop: Math.round(avgPop),
-      score: Math.round(score),
-    });
-  }
-
-  out.sort((a, b) => b.score - a.score);
-  return out.slice(0, 3);
-}
-
 function renderTimeline(forecast, now, bestStart, bestEnd) {
   timelineEl.innerHTML = "";
 
   const { sat, sun } = nextWeekendDates(now);
   const days = [
-    { label: "Samedi", date: sat },
-    { label: "Dimanche", date: sun },
+    { label: `Samedi ${sat.getDate()}`, date: sat },
+    { label: `Dimanche ${sun.getDate()}`, date: sun },
   ];
 
   const times = forecast.hourly.time.map((t) => new Date(t));
@@ -338,11 +293,11 @@ async function refresh() {
 
     mainEl.innerHTML = `
   <span class="success">
-    Sortie conseillée: ${fmtSlot(bestStart, bestEnd)} (${duration}h) — ${best.temperature}°C
+    Sortie conseillée : ${fmtSlot(bestStart, bestEnd)} (${duration}h) — ${best.temperature}°C
   </span>
 `;
 
-    metaEl.textContent = `Maj: ${now.toLocaleTimeString("fr-FR")} · ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+    metaEl.textContent = `Position: ${lat.toFixed(3)}, ${lon.toFixed(3)} — ${now.toLocaleString("fr-FR")}`;
 
     renderTableBestOnly(best);
 
@@ -350,20 +305,9 @@ async function refresh() {
     const forecast = await fetchForecast(lat, lon);
     renderTimeline(forecast, now, bestStart, bestEnd);
 
-    // Top 3: seulement utile sur mobile, mais on peut le calculer partout
-    const topSlots = computeTopSlotsFromForecast(
-      forecast,
-      now,
-      activity,
-      duration,
-    );
-    renderTop3(topSlots);
-
     setStatus("OK");
   } catch (e) {
     setStatus("Erreur");
-    top3El.hidden = true;
-    top3ListEl.innerHTML = "";
     errEl.textContent = e.message || String(e);
     mainEl.textContent = "Impossible de proposer un créneau pour le moment.";
   } finally {
@@ -372,32 +316,3 @@ async function refresh() {
 }
 
 btn.addEventListener("click", refresh);
-
-// Auto-refresh: toutes les 30 min quand l'app est visible
-const AUTO_REFRESH_MINUTES = 30;
-let autoRefreshTimer = null;
-function startAutoRefresh() {
-  stopAutoRefresh();
-  autoRefreshTimer = setInterval(
-    () => {
-      if (document.visibilityState === "visible") {
-        refresh();
-      }
-    },
-    AUTO_REFRESH_MINUTES * 60 * 1000,
-  );
-}
-
-function stopAutoRefresh() {
-  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = null;
-}
-
-// Quand on revient sur l'app, on refresh une fois
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    refresh();
-  }
-});
-
-startAutoRefresh();
