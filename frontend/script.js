@@ -1,4 +1,9 @@
-const BACKEND_URL = "http://localhost:3000";
+const isLocalDevelopment =
+  window.location.protocol === "file:" ||
+  ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+const BACKEND_URL = isLocalDevelopment
+  ? "http://localhost:3000"
+  : "https://api.weekendly.cosmos-lty.fr";
 
 const statusEl = document.querySelector("#status");
 const btn = document.querySelector("#refresh");
